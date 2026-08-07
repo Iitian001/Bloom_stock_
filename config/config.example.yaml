@@ -1,0 +1,67 @@
+environment: paper
+
+angel_one:
+  api_key: "YOUR_API_KEY"
+  client_id: "YOUR_CLIENT_ID" 
+  password: "YOUR_PASSWORD"
+  totp_secret: "YOUR_TOTP_SECRET"
+
+session:
+  timezone: "Asia/Kolkata"
+  market_open: "09:15:00"
+  market_close: "15:30:00"
+  no_new_entries_after: "14:30:00"
+  begin_liquidation_at: "14:55:00"
+  hard_flat_cash_at: "15:10:00"
+  opening_range_minutes: 15
+
+provider:
+  name: angel_one
+  historical:
+    requests_per_second: 3
+    requests_per_minute: 180
+    requests_per_hour: 5000
+  websocket:
+    max_connections: 1
+    max_tokens_per_connection: 100
+  orders:
+    internal_requests_per_second: 5
+    broker_limit_is_not_a_target: true
+  auth:
+    daily_rotation: true
+    static_ip_required_for_live_orders: true
+
+risk:
+  risk_per_trade_fraction: 0.0025
+  max_notional_per_stock_fraction: 0.10
+  max_open_positions: 3
+  max_positions_per_sector: 2
+  max_completed_trades_per_day: 8
+  daily_loss_limit_fraction: 0.01
+  weekly_loss_limit_fraction: 0.025
+  strategy_drawdown_pause_fraction: 0.05
+  max_consecutive_losses: 3
+  max_daily_turnover_fraction: 1.50
+
+models:
+  regime: "regime-001"
+  ranker: "ranker-001"
+  meta_labeler: "meta-001"
+
+execution:
+  live_enabled: false
+  human_approval_required: true
+  paper_mode: true
+
+universe:
+  min_daily_traded_value: 50000000  # 5 Cr
+  min_median_spread_pct: 0.005
+  min_trading_days: 200
+  min_price: 50.0
+  active_list_size: 100
+  execution_candidates: 10
+
+logging:
+  level: "INFO"
+  log_dir: "logs/"
+  audit_log: true

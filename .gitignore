@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+venv/
+.venv/
+
+# Config with secrets
+config/config.yaml
+config/config.live.yaml
+!config/config.example.yaml
+!config/config.paper.yaml
+
+# Data
+data/
+logs/
+*.parquet
+*.db
+*.sqlite
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ML
+mlruns/
+mlflow/
+*.pkl
+*.joblib
+
+# Docker
+*.env

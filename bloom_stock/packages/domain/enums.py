@@ -1,0 +1,103 @@
+from enum import Enum
+
+class Exchange(str, Enum):
+    NSE = "NSE"
+    BSE = "BSE"
+    NFO = "NFO"
+    MCX = "MCX"
+
+class Segment(str, Enum):
+    EQUITY = "EQUITY"
+    FUTURES = "FUTURES"
+    OPTIONS = "OPTIONS"
+
+class OrderSide(str, Enum):
+    BUY = "BUY"
+    SELL = "SELL"
+
+class OrderType(str, Enum):
+    MARKET = "MARKET"
+    LIMIT = "LIMIT"
+    SL = "SL"
+    SL_M = "SL_M"
+
+class OrderProduct(str, Enum):
+    INTRADAY = "INTRADAY"
+    CNC = "CNC"
+    NRML = "NRML"
+
+class OrderStatus(str, Enum):
+    DRAFT = "DRAFT"
+    AWAITING_APPROVAL = "AWAITING_APPROVAL"
+    APPROVED = "APPROVED"
+    SUBMITTING = "SUBMITTING"
+    BROKER_ACCEPTED = "BROKER_ACCEPTED"
+    OPEN = "OPEN"
+    PARTIALLY_FILLED = "PARTIALLY_FILLED"
+    FILLED = "FILLED"
+    EXIT_PENDING = "EXIT_PENDING"
+    CLOSED = "CLOSED"
+    REJECTED = "REJECTED"
+    CANCELLED = "CANCELLED"
+    EXPIRED = "EXPIRED"
+    UNKNOWN_RECONCILIATION_REQUIRED = "UNKNOWN_RECONCILIATION_REQUIRED"
+
+class RegimeType(str, Enum):
+    TREND_UP = "TREND_UP"
+    TREND_DOWN = "TREND_DOWN"
+    RANGE_LOW_VOL = "RANGE_LOW_VOL"
+    HIGH_VOLATILITY = "HIGH_VOLATILITY"
+    DISORDERED_NO_TRADE = "DISORDERED_NO_TRADE"
+
+class StrategyFamily(str, Enum):
+    ORB_CONTINUATION = "ORB_CONTINUATION"
+    VWAP_PULLBACK = "VWAP_PULLBACK"
+    MEAN_REVERSION = "MEAN_REVERSION"
+    GAP_EVENT = "GAP_EVENT"
+
+class SignalDirection(str, Enum):
+    LONG = "LONG"
+    SHORT = "SHORT"
+    NO_TRADE = "NO_TRADE"
+
+class GapClass(str, Enum):
+    CONTINUATION_LONG = "CONTINUATION_LONG"
+    CONTINUATION_SHORT = "CONTINUATION_SHORT"
+    FADE_LONG = "FADE_LONG"
+    FADE_SHORT = "FADE_SHORT"
+    NO_TRADE = "NO_TRADE"
+
+class TradingSessionPhase(str, Enum):
+    PRE_MARKET = "PRE_MARKET"
+    OPENING_RANGE = "OPENING_RANGE"
+    ACTIVE_TRADING = "ACTIVE_TRADING"
+    NO_NEW_ENTRIES = "NO_NEW_ENTRIES"
+    LIQUIDATION = "LIQUIDATION"
+    FLAT = "FLAT"
+    POST_MARKET = "POST_MARKET"
+
+class ModelPromotionState(str, Enum):
+    EXPERIMENT = "EXPERIMENT"
+    VALIDATED = "VALIDATED"
+    SHADOW = "SHADOW"
+    PAPER = "PAPER"
+    LIMITED_LIVE = "LIMITED_LIVE"
+    PRODUCTION = "PRODUCTION"
+    RETIRED = "RETIRED"
+
+class WebSocketState(str, Enum):
+    DISCONNECTED = "DISCONNECTED"
+    AUTHENTICATING = "AUTHENTICATING"
+    CONNECTING = "CONNECTING"
+    SUBSCRIBING = "SUBSCRIBING"
+    HEALTHY = "HEALTHY"
+    DEGRADED = "DEGRADED"
+    RECONNECTING = "RECONNECTING"
+    FAILED_SAFE = "FAILED_SAFE"
+
+class DataQuality(str, Enum):
+    GOOD = "GOOD"
+    DELAYED = "DELAYED"
+    STALE = "STALE"
+    MISSING = "MISSING"
+    SUSPECT = "SUSPECT"

@@ -1,0 +1,46 @@
+[project]
+name = "bloom-stock"
+version = "0.1.0"
+description = "Bloom_Stock quant trading engine"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.0",
+    "pydantic-settings",
+    "pyyaml",
+    "polars",
+    "pandas",
+    "numpy",
+    "fastapi",
+    "uvicorn",
+    "smartapi-python",
+    "pyotp",
+    "loguru",
+    "sqlalchemy[asyncio]",
+    "asyncpg",
+    "redis",
+    "lightgbm",
+    "xgboost",
+    "scikit-learn",
+    "mlflow",
+    "pandera",
+    "httpx",
+    "websockets",
+    "orjson"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "ruff",
+    "mypy"
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.setuptools.packages.find]
+where = ["bloom_stock"]
+include = ["packages*", "services*"]
