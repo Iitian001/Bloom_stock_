@@ -1,0 +1,3 @@
+"""
+FastAPI backend service.
+"""
