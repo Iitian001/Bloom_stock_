@@ -1,157 +1,60 @@
-from datetime import datetime
-from decimal import Decimal
-import uuid
-from typing import Dict, Any, List
-
+"""
+Portfolio Ledger
+Tracks positions and cash transactions using SQLAlchemy models.
+"""
 from loguru import logger
-from pydantic import BaseModel, Field
+from sqlalchemy.future import select
 
-from bloom_stock.packages.domain.schemas.orders import Fill
-
-class FeeBreakdown(BaseModel):
-    brokerage: Decimal = Decimal('0')
-    stt: Decimal = Decimal('0')
-    exchange_txn_charge: Decimal = Decimal('0')
-    sebi_turnover_fee: Decimal = Decimal('0')
-    stamp_duty: Decimal = Decimal('0')
-    gst: Decimal = Decimal('0')
-    
-    @property
-    def total(self) -> Decimal:
-        return (self.brokerage + self.stt + self.exchange_txn_charge + 
-                self.sebi_turnover_fee + self.stamp_duty + self.gst)
-
-class LedgerEntry(BaseModel):
-    entry_id: uuid.UUID = Field(default_factory=uuid.uuid4)
-    timestamp: datetime
-    entry_type: str  # 'BUY', 'SELL', 'FEE', 'ADJUSTMENT'
-    instrument_id: str | None = None
-    quantity: int = 0
-    price: Decimal = Decimal('0')
-    cash_change: Decimal = Decimal('0')  # positive = cash in, negative = cash out
-    description: str = ''
+from bloom_stock.packages.storage.db import AsyncSessionLocal
+from bloom_stock.packages.storage.models import PositionModel, LedgerEntryModel
 
 class PortfolioLedger:
-    """Double-entry portfolio ledger that tracks all cash and position changes.
-    Every fill produces balanced ledger entries."""
+    """Async Portfolio Ledger backed by DB."""
     
-    def __init__(self, initial_capital: Decimal):
-        self._initial_capital = initial_capital
-        self._cash = initial_capital
-        self._entries: List[LedgerEntry] = []
-        self._daily_pnl: Decimal = Decimal('0')
-        self._weekly_pnl: Decimal = Decimal('0')
-        self._total_realized_pnl: Decimal = Decimal('0')
-        self._peak_equity: Decimal = initial_capital
-        self._open_unrealized_pnl: Decimal = Decimal('0')
-    
-    def record_entry(self, fill: Fill, fees: FeeBreakdown, side: str):
-        """Record a position entry."""
-        logger.info(f"Ledger: Recording entry for {fill.quantity} units of {fill.order_id} ({side})")
-        
-        notional = fill.price * fill.quantity
-        if side == 'BUY':
-            cash_change = -notional
-        else:
-            cash_change = notional
+    @staticmethod
+    async def update_position(instrument_id: str, qty_change: int, price: float) -> None:
+        """Updates or creates a PositionModel."""
+        async with AsyncSessionLocal() as session:
+            stmt = select(PositionModel).filter_by(instrument_id=instrument_id)
+            result = await session.execute(stmt)
+            position = result.scalar_one_or_none()
             
-        trade_entry = LedgerEntry(
-            timestamp=fill.timestamp,
-            entry_type=side,
-            instrument_id=fill.exchange_order_id,
-            quantity=fill.quantity,
-            price=fill.price,
-            cash_change=cash_change,
-            description=f"Entry {side} {fill.quantity} @ {fill.price}"
-        )
-        self._cash += cash_change
-        self._entries.append(trade_entry)
-        
-        self._record_fees(fill, fees)
-        self._update_peak_equity()
-    
-    def record_exit(self, fill: Fill, fees: FeeBreakdown, side: str, 
-                    entry_price: Decimal):
-        """Record a position exit and calculate P&L."""
-        logger.info(f"Ledger: Recording exit for {fill.quantity} units of {fill.order_id} ({side})")
-        
-        notional = fill.price * fill.quantity
-        if side == 'SELL':
-            cash_change = notional
-            realized_pnl = (fill.price - entry_price) * fill.quantity
-        else:
-            cash_change = -notional
-            realized_pnl = (entry_price - fill.price) * fill.quantity
+            if position is None:
+                position = PositionModel(
+                    instrument_id=instrument_id,
+                    average_price=price,
+                    net_quantity=qty_change,
+                    realized_pnl=0.0
+                )
+                session.add(position)
+                logger.info(f"Created new position for {instrument_id}")
+            else:
+                if (position.net_quantity > 0 and qty_change > 0) or (position.net_quantity < 0 and qty_change < 0):
+                    total_val = (position.average_price * position.net_quantity) + (price * qty_change)
+                    position.net_quantity += qty_change
+                    if position.net_quantity != 0:
+                        position.average_price = total_val / position.net_quantity
+                else:
+                    closed_qty = min(abs(position.net_quantity), abs(qty_change))
+                    direction = 1 if position.net_quantity > 0 else -1
+                    pnl = (price - position.average_price) * closed_qty * direction
+                    position.realized_pnl += pnl
+                    position.net_quantity += qty_change
+                    if position.net_quantity == 0:
+                        position.average_price = 0.0
+                logger.info(f"Updated position for {instrument_id}, net_qty: {position.net_quantity}")
             
-        trade_entry = LedgerEntry(
-            timestamp=fill.timestamp,
-            entry_type=side,
-            instrument_id=fill.exchange_order_id,
-            quantity=fill.quantity,
-            price=fill.price,
-            cash_change=cash_change,
-            description=f"Exit {side} {fill.quantity} @ {fill.price}"
-        )
-        self._cash += cash_change
-        self._entries.append(trade_entry)
-        
-        self._record_fees(fill, fees)
-        
-        net_pnl = realized_pnl - fees.total
-        self._total_realized_pnl += net_pnl
-        self._daily_pnl += net_pnl
-        self._weekly_pnl += net_pnl
-        
-        self._update_peak_equity()
-
-    def _record_fees(self, fill: Fill, fees: FeeBreakdown):
-        if fees.total > Decimal('0'):
-            fee_entry = LedgerEntry(
-                timestamp=fill.timestamp,
-                entry_type='FEE',
-                instrument_id=fill.exchange_order_id,
-                cash_change=-fees.total,
-                description="Transaction fees and taxes"
+            await session.commit()
+            
+    @staticmethod
+    async def record_transaction(type: str, amount: float, notes: str) -> None:
+        """Appends to LedgerEntryModel."""
+        async with AsyncSessionLocal() as session:
+            entry = LedgerEntryModel(
+                transaction_type=type,
+                amount=amount,
+                notes=notes
             )
-            self._cash -= fees.total
-            self._entries.append(fee_entry)
-
-    def update_unrealized_pnl(self, unrealized_pnl: Decimal):
-        """Update the aggregate unrealized P&L from open positions."""
-        self._open_unrealized_pnl = unrealized_pnl
-        self._update_peak_equity()
-    
-    @property
-    def cash(self) -> Decimal:
-        return self._cash
-    
-    @property
-    def equity(self) -> Decimal:
-        """Cash + unrealized P&L of open positions."""
-        return self._initial_capital + self._total_realized_pnl + self._open_unrealized_pnl
-    
-    @property
-    def drawdown_from_peak(self) -> Decimal:
-        if self._peak_equity <= Decimal('0'):
-            return Decimal('0')
-        return (self._peak_equity - self.equity) / self._peak_equity
-
-    def _update_peak_equity(self):
-        if self.equity > self._peak_equity:
-            self._peak_equity = self.equity
-    
-    def get_snapshot(self) -> dict:
-        return {
-            "cash": self.cash,
-            "equity": self.equity,
-            "daily_pnl": self._daily_pnl,
-            "weekly_pnl": self._weekly_pnl,
-            "total_realized_pnl": self._total_realized_pnl,
-            "unrealized_pnl": self._open_unrealized_pnl,
-            "peak_equity": self._peak_equity,
-            "drawdown": self.drawdown_from_peak,
-            "entry_count": len(self._entries)
-        }
-    
-    def reset_daily(self):
-        self._daily_pnl = Decimal('0')
+            session.add(entry)
+            await session.commit()
+            logger.info(f"Recorded transaction: {type} amount: {amount}")

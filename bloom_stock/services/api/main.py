@@ -4,6 +4,10 @@ from loguru import logger
 import orjson
 from typing import List, Dict, Any
 
+from sqlalchemy.future import select
+from bloom_stock.packages.storage.db import AsyncSessionLocal
+from bloom_stock.packages.storage.models import PositionModel, OrderModel
+
 app = FastAPI(title="Bloom_Stock Live Shadow API")
 
 app.add_middleware(
@@ -70,6 +74,41 @@ async def get_regime() -> Dict[str, str]:
     """Retrieves current market regime."""
     # Mock data for now
     return {"regime": "TREND_UP"}
+
+@app.get("/api/v1/portfolio/positions")
+async def get_positions() -> List[Dict[str, Any]]:
+    """Retrieves current active positions."""
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(PositionModel).where(PositionModel.net_quantity != 0))
+        positions = result.scalars().all()
+        return [
+            {
+                "id": p.id,
+                "instrument_id": p.instrument_id,
+                "average_price": p.average_price,
+                "net_quantity": p.net_quantity,
+                "realized_pnl": p.realized_pnl,
+                "updated_at": p.updated_at.isoformat() if p.updated_at else None
+            } for p in positions
+        ]
+
+@app.get("/api/v1/portfolio/orders")
+async def get_orders() -> List[Dict[str, Any]]:
+    """Retrieves the latest 50 orders."""
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(OrderModel).order_by(OrderModel.created_at.desc()).limit(50))
+        orders = result.scalars().all()
+        return [
+            {
+                "id": o.id,
+                "instrument_id": o.instrument_id,
+                "side": o.side,
+                "quantity": o.quantity,
+                "price": o.price,
+                "state": o.state,
+                "created_at": o.created_at.isoformat() if o.created_at else None
+            } for o in orders
+        ]
 
 @app.websocket("/api/v1/candidates/stream")
 async def websocket_endpoint(websocket: WebSocket) -> None:

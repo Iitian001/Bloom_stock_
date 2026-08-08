@@ -100,3 +100,21 @@
     grid-template-columns: 1fr;
   }
 }
+
+.portfolioSection {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.portfolioGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .portfolioGrid {
+    grid-template-columns: 1fr;
+  }
+}

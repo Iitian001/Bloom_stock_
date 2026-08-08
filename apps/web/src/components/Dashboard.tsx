@@ -5,6 +5,8 @@ import styles from './Dashboard.module.css';
 import CandidateList from './CandidateList';
 import RiskWidget from './RiskWidget';
 import RegimeWidget from './RegimeWidget';
+import PositionsTable from './PositionsTable';
+import OrdersTable from './OrdersTable';
 
 export default function Dashboard() {
   const [candidates, setCandidates] = useState<any[]>([]);
@@ -91,6 +93,16 @@ export default function Dashboard() {
         <aside className={styles.sidebar}>
           <RiskWidget data={risk} />
         </aside>
+      </div>
+
+      <div className={styles.portfolioSection}>
+        <div className={styles.sectionHeader}>
+          <h2>Paper Trading Portfolio</h2>
+        </div>
+        <div className={styles.portfolioGrid}>
+          <PositionsTable />
+          <OrdersTable />
+        </div>
       </div>
     </div>
   );
